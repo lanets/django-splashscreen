@@ -22,8 +22,9 @@
 
 import re
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.http import HttpResponseRedirect
+from django.utils.deprecation import MiddlewareMixin
 
 from lanets.apps.administration.models import Configuration
 
@@ -34,13 +35,18 @@ allowed_urls = [
     re.compile(r'^(/)*static/.*'),
     re.compile(r'^(/)*accounts/.*'),
     re.compile(r'^(/)*splashscreen/.*'),
+    re.compile(r'^(/)*forums/.*'),
+    re.compile(r'^(/)*polls/.*'),
+    re.compile(r'^(/)*news/\d+'),
+    re.compile(r'^(/)*i18n')
 ]
 
 
-class SplashScreenMiddleware(object):
+class SplashScreenMiddleware(MiddlewareMixin):
 
     def process_request(self, request):
         config = Configuration.get_config()
+
         if not config.splashscreen:
             return
 
@@ -48,5 +54,7 @@ class SplashScreenMiddleware(object):
             if allowed_url.match(request.path_info):
                 return
 
-        return HttpResponseRedirect(reverse('main:splashscreen'))
+        if request.user.is_superuser:
+            return
 
+        return HttpResponseRedirect(reverse('main:splashscreen'))
